@@ -1,6 +1,6 @@
 ## Autonomous Recovery of the Unmanned Ground Vehicle with Real-time Keypoints Detection
 
-After the paper is accepted, the data set and code will be publicly available.
+<font size=6 color=red>After the paper is accepted, the data set and code will be publicly available.</font>！
 
 ### Markdown
 You can use the [editor on GitHub](https://github.com/waterljwant/UGV-KPNet/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
