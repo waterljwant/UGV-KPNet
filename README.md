@@ -6,7 +6,7 @@
 
 If you find UGV-KPNet useful in your research, please cite:
 
-    @article{song2016ssc,
+    @article{ugvkpnet,
       author     = {Jie Li, Sheng Zhang, Kai Han, Xia Yuan, Chunxia Zhao, and Yu Liu},
       title      = {Autonomous Recovery of the Unmanned Ground Vehicle with Real-time Keypoints Detection},
       journal    = {},
