@@ -1,0 +1,6 @@
+numpy
+torch
+opencv-python
+tensorboardX
+scikit-image
+scipy

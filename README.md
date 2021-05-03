@@ -1,16 +1,17 @@
-## Autonomous Recovery of the Unmanned Ground Vehicle with Real-time Keypoints Detection
-
-#### After the paper is accepted, the data set and code will be publicly available.
-
+## Real-time keypoints detection for autonomous recovery of the unmanned ground vehicle
 
 
 If you find UGV-KPNet useful in your research, please cite:
 
     @article{ugvkpnet,
-      author     = {Jie Li, Sheng Zhang, Kai Han, Xia Yuan, Chunxia Zhao, and Yu Liu},
-      title      = {Autonomous Recovery of the Unmanned Ground Vehicle with Real-time Keypoints Detection},
-      journal    = {},
-      year       = {},
+      author    = {Li, Jie and Zhang, Sheng and Han, Kai and Yuan, Xia and Zhao, Chunxia and Liu, Yu},
+      title     = {Real-time keypoints detection for autonomous recovery of the unmanned ground vehicle},
+      journal   = {IET Image Processing},
+      volume    = {14},
+      number    = {17},
+      pages     = {4690--4700},
+      year      = {2021},
+      publisher = {IET}
     }
     
 ### Contents
@@ -24,3 +25,9 @@ If you find UGV-KPNet useful in your research, please cite:
 
 ### Dataset
 ![dataset](data/dataset_v2.png)
+
+
+
+
+
+Our work is built on https://github.com/tensorboy/pytorch_Realtime_Multi-Person_Pose_Estimation.
