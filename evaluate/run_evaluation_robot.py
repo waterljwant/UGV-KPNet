@@ -29,69 +29,20 @@ strFlag.append('post-processing')
 # ------------------------------------------------------------------------------------------------------------
 # ShuffleNet
 model_name='shufflenet'
-# baseline  2019-04-27
+
 # multistage=0
-# weight_name='../network/weight/shufflenet_robot_ms0_baseline_v1.0.pth'  # P81.36% R63.58%
-
-multistage=0
-# weight_name='../network/weight/shufflenet_robot_ms0-v0.1.0.pth'       # Precision:	85.92% Recall:	80.79%
-# weight_name='../network/weight/shufflenet_robot_ms0-v0.1.0_best.pth'  # Precision:	82.31% Recall:	80.13%
-# weight_name='../network/weight/shufflenet_robot_ms0-v0.1.1.pth'       # Precision:	90.60% Recall:	89.40%
-# weight_name='../network/weight/shufflenet_robot_ms0-v0.1.1_best.pth'  # Precision:	91.95% Recall:	90.73%
-# weight_name='../network/weight/shufflenet_robot_ms0-v0.1.2.pth'         # Precision:	90.85% Recall:	92.05%
-# weight_name='../network/weight/shufflenet_robot_ms0-v0.1.2_best.pth'  # Precision:	90.79% Recall:	91.39%
-# weight_name='/home/jie/kikprogram/robot/OpenPoseV1/network/weight/shufflenet_robot_ms0-try.pth'  #
-# weight_name='/home/jie/kikprogram/robot/OpenPoseV1/network/weight/shufflenet_robot_ms0-try_best.pth'  # nan
+# weight_name='../network/weight/shufflenet_robot_ms0.pth'
 
 #
-# multistage=1
-# weight_name='/home/jie/kikprogram/robot/OpenPoseV1/network/weight/shufflenet_robot-v0.1_ms1.pth'
-# weight_name='/home/jie/kikprogram/robot/OpenPoseV1/network/weight/shufflenet_robot_ms1-v0.2.pth'
-# weight_name='/home/jie/kikprogram/robot/OpenPoseV1/network/weight/shufflenet_robot_ms1-v0.1.0-tmp_best.pth'  # nan
-# weight_name='/home/jie/kikprogram/robot/OpenPoseV1/network/weight/shufflenet_robot_m10-v0.1.baseline.pth'  # nan
-# weight_name='/home/jie/kikprogram/robot/OpenPoseV1/network/weight/shufflenet_robot_ms1-v0.1.baseline.pth'  # nan
-#
-# multistage=2
-# weight_name='/home/jie/kikprogram/robot/OpenPoseV1/network/weight/shufflenet_robot-v0.1_ms2_best.pth'
-# weight_name='/home/jie/kikprogram/robot/OpenPoseV1/network/weight/shufflenet_robot_ms2-v0.2_best.pth'
-
-# vis_dir = './robot_vis-1280x720_test'
-vis_dir = '../../../Desktop/IET/robot/OpenPoseV1/evaluate/robot_vis-640x360_test-ms'
-# vis_dir = './robot_vis-640x360_ms0-v0.1.2'
-
-# ------------------------------------------------------------------------------------------------------------
-# VGG19
-# model_name='vgg19'
-
-# weight_name = '/home/jie/kiktech-seg/robot/OpenPoseV1/network/weight/vgg19_robot_125-100-lr0.1.pth'  # --NAN
-# weight_name = '/home/jie/kiktech-seg/robot/OpenPoseV1/network/weight/vgg19_robot_125-lr0.1_2.pth'
+multistage=2
+weight_name='../network/weight/shufflenet_robot_ms2.pth'
 
 
-#
-# weight_name = '/home/jie/kiktech-seg/robot/OpenPoseV1/network/weight/vgg19_robot_125_1-4_e50.pth'
-
-# weight_name = '/home/jie/kiktech-seg/robot/OpenPoseV1/network/weight/vgg19_robot_125-500.pth'
-
-# weight_name = '/home/jie/kiktech-seg/robot/OpenPoseV1/network/weight/vgg19_robot_125-100.pth'  #
-# weight_name = '/home/jie/kiktech-seg/robot/OpenPoseV1/network/weight/vgg19_robot_125-100-lr0.1.pth'
-
-# weight_name = '/home/jie/kiktech-seg/robot/OpenPoseV1/network/weight/vgg19_robot_125-100-lr1.0-resample.pth'
-
-
-
-# json_path.append('/home/jie/dataset/kik-keypoints/kik_keypoints_20190125-front-view.json')
-# weight_name='/home/jie/kiktech-seg/robot/OpenPoseV1/network/weight/vgg19_kikrobot_125-20.pth'
-# vis_dir = None
-# vis_dir = './robot_vis-dataset125_1-4_e40'
+vis_dir = './result_vis'
 
 
 # ------------------------------------------------------------------------------
 tic = datetime.datetime.now()
-
-# ------------------------------------------------------------------------------
-# 将 keypoints 以编号0123的形式，在图片上标记出来
-# vis_GT = 'kik_vis_0125_GT_VAL'
-# show_GT(json_path, vis_GT, 'VAL')  # VAL or TRAIN or None for both
 
 
 if vis_dir is not None:
@@ -100,14 +51,6 @@ if vis_dir is not None:
         print('mkdir:', vis_dir)
 print('save vis images to:', vis_dir)
 
-
-# valid_data = get_loader(args.json_path, args.data_dir, args.mask_dir, inp_size=None, feat_stride=8,
-#                         preprocess='rtpose', batch_size=args.batch_size,  params_transform=CF.params_transform,
-#                         shuffle=False, training=False, num_workers=args.workers,
-#                         classification=args.classification)
-# print('val dataset len: {}'.format(len(valid_data.dataset)))
-
-# ------------------------------------------------------------------------------
 with torch.autograd.no_grad():
 
     if model_name == 'vgg19':            # --- VGG19
