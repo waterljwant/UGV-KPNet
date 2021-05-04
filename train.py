@@ -12,7 +12,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tensorboardX import SummaryWriter
 
 # import encoding
-# from network.rtpose_vgg import get_model, use_vgg
+from network.rtpose_vgg import get_model, use_vgg
 from network import rtpose_shufflenetV2
 
 # ---- Kik dataset
@@ -43,6 +43,7 @@ parser.add_argument('--data_augment', default=False, type=bool, help='data augme
 parser.add_argument('--resume', default=None, type=str, metavar='PATH', help='path to latest checkpoint')
 
 parser.add_argument('--multistage', default=0, type=int, metavar='N', help='number 0f refine stages')
+parser.add_argument('--samplenumber', default=72, type=int, metavar='N', help='number 0f refine stages')
 
 parser.add_argument('--gpu_ids', dest='gpu_ids', help='which gpu to use', nargs="+", default=[0], type=int)
 parser.add_argument('--batch_size', default=1, type=int, metavar='N', help='mini-batch size (default: 256)')
@@ -61,6 +62,8 @@ parser.add_argument('--lr', '--learning-rate', default=0.2, type=float, metavar=
 
 parser.add_argument('--momentum', default=0.9, type=float, metavar='M', help='momentum')
 
+parser.add_argument('--width_mult', default=1.0, type=float, metavar='W', help='width_mult')
+
 parser.add_argument('--nesterov', dest='nesterov', action='store_true')
 
 parser.add_argument('-o', '--optim', default='sgd', type=str)
@@ -68,6 +71,9 @@ parser.add_argument('-o', '--optim', default='sgd', type=str)
 
 parser.add_argument('--print_freq', default=20, type=int, metavar='N',
                     help='number of iterations to print the training statistics')
+
+parser.add_argument('--model', default='shufflenet', type=str, help='network backbne')
+parser.add_argument('--head', default=None, type=str, help='network head')
 
 args = parser.parse_args()
 
@@ -167,8 +173,15 @@ def get_loss(saved_for_loss, heat_temp, heat_weight, vec_temp, vec_weight):
     # print(vec_weight.data.size(), saved_for_loss[0].data.size())
     # print('len(saved_for_loss):', len(saved_for_loss))
     for j in range(len(saved_for_loss) // 2):
+        # print('j:', j)
         # for j in range(len(saved_for_loss)):
         # PAF
+        # print('vec_weight.shape:', vec_weight.shape)
+        # print("pred1 sizes")
+        # print(saved_for_loss[2 * j].data.size())
+        # print("pred2 sizes")
+        # print(saved_for_loss[2 * j + 1].data.size())
+
         pred1 = saved_for_loss[2 * j] * vec_weight  # [40, 8, 46, 46], [40, 8, 46, 46]
         gt1 = vec_temp * vec_weight  # [40, 8, 46, 46], [40, 8, 46, 46]
         loss1 = criterion(pred1, gt1)
@@ -243,7 +256,7 @@ def train(train_loader, model, optimizer, epoch):
 
     # switch to train mode
     model.train()
-    neg_rate = min(max(1. - (epoch + 1) / 72., 0.), 0.95)
+    neg_rate = min(max(1. - (epoch + 1) / args.samplenumber, 0.), 0.95)
     if args.resample:
         print(
             'Epoch: {}, ignore_rate:{:.4f}, Learning rate:{}'.format(epoch, neg_rate, optimizer.param_groups[0]['lr']))
@@ -263,6 +276,7 @@ def train(train_loader, model, optimizer, epoch):
         if args.resample and neg_rate > 0:
             heat_mask, paf_mask = resample(heatmap_target, heat_mask, paf_target, paf_mask, neg_rate)
 
+        # print('img.shape:', img.shape, 'heatmap_target:', heatmap_target.shape)
         img = img.cuda()
         heatmap_target = heatmap_target.cuda()
         heat_mask = heat_mask.cuda()
@@ -271,7 +285,7 @@ def train(train_loader, model, optimizer, epoch):
 
         # compute output
         # _,saved_for_loss = model(img)
-        saved_for_loss = model(img)
+        saved_for_loss = model(img)  # [PAF, HEAT]
 
         total_loss, saved_for_log = get_loss(saved_for_loss, heatmap_target, heat_mask, paf_target, paf_mask)
 
@@ -406,9 +420,127 @@ valid_data = get_loader(args.json_path, args.data_dir, args.mask_dir, inp_size=N
 print('val dataset len: {}'.format(len(valid_data.dataset)))
 
 # model
-model = rtpose_shufflenetV2.Network(width_multiplier=1.0, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
-                                    multistage=args.multistage)  # Mod by Jie.
+model_name = args.model
+width_mult = args.width_mult
+print('width_mult:{}'.format(width_mult))
+if model_name == 'vgg19':  # --- VGG19
+    model = get_model(trunk='vgg19', numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS)
+    preprocess = 'vgg'
+elif model_name == 'shufflenet':  # --- ShuffleNet
+    model = rtpose_shufflenetV2.Network(width_multiplier=1.0, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                        multistage=args.multistage)
+    preprocess = 'rtpose'
+elif model_name == 'LWshufflenet':  # --- Light weight ShuffleNet
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage)
+    preprocess = 'rtpose'
+elif model_name == 'LWShuffleNetV2_baseline':  # ShuffleNetV2 baseline
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage, backbone='LWShuffleNetV2_baseline',
+                                          head=args.head)
+    preprocess = 'rtpose'
+elif model_name == 'LWShuffleNetV2_baseline_v1':  # ShuffleNetV2 baseline
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage, backbone='LWShuffleNetV2_baseline_v1',
+                                          head=args.head)
+    preprocess = 'rtpose'
+elif model_name == 'LWShuffleNetV2_baseline_v1_cat':  # ShuffleNetV2 baseline
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage, backbone='LWShuffleNetV2_baseline_v1_cat',
+                                          head=args.head)
+    preprocess = 'rtpose'
+elif model_name == 'LWShuffleNetV2_v1_16_cat':  # ShuffleNetV2 baseline
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage, backbone='LWShuffleNetV2_v1_16_cat',
+                                          head=args.head)
+    preprocess = 'rtpose'
+elif model_name == 'LWShuffleNetV2_HR_cat':  # ShuffleNetV2 baseline
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage, backbone='LWShuffleNetV2_HR_cat',
+                                          head=args.head)
+    preprocess = 'rtpose'
+elif model_name == 'LWShuffleNetV2_HR_catv2':  # ShuffleNetV2 baseline
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage, backbone='LWShuffleNetV2_HR_catv2',
+                                          head=args.head)
+    preprocess = 'rtpose'
+elif model_name == 'LWShuffleNetV2_HRv2':  # ShuffleNetV2 baseline
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage, backbone='LWShuffleNetV2_HRv2',
+                                          head=args.head)
+    preprocess = 'rtpose'
+elif model_name == 'LWShuffleNetV2_baseline_v2':  # ShuffleNetV2 baseline
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage, backbone='LWShuffleNetV2_baseline_v2',
+                                          head=args.head)
+    preprocess = 'rtpose'
+elif model_name == 'LWShuffleNetV2_baseline_v3':  # ShuffleNetV2 baseline
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage, backbone='LWShuffleNetV2_baseline_v3',
+                                          head=args.head)
+    preprocess = 'rtpose'
+elif model_name == 'LWShuffleNetV2_SingleASPP':  # --- ShuffleNetV2 + ASPP
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage, backbone='LWShuffleNetV2_SingleASPP',
+                                          head=args.head)
+    preprocess = 'rtpose'
+elif model_name == 'LWShuffleNetV2_SingleASPP192':  # --- Light weight ShuffleNet
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage, backbone='LWShuffleNetV2_SingleASPP192',
+                                          head=args.head)
+    preprocess = 'rtpose'
+elif model_name == 'LWShuffleNetV2_MultiASPP192':  # --- Light weight ShuffleNet
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage, backbone='LWShuffleNetV2_MultiASPP192',
+                                          head=args.head)
+    preprocess = 'rtpose'
+elif model_name == 'LWShuffleNetV2_MultiASPP':  # --- Light weight ShuffleNet
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage, backbone='LWShuffleNetV2_MultiASPP',
+                                          head=args.head)
+    preprocess = 'rtpose'
+elif model_name == 'LWShuffleNetV2_mscat':  # --- Light weight ShuffleNet
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage, backbone='LWShuffleNetV2_mscat',
+                                          head=args.head)
+    preprocess = 'rtpose'
+elif model_name == 'LWShuffleNetV2_msadd':  # --- Light weight ShuffleNet
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage, backbone='LWShuffleNetV2_msadd',
+                                          head=args.head)
+    preprocess = 'rtpose'
+elif model_name == 'ShuffleNetV2_cat':  # --- Light weight ShuffleNet
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage, backbone='ShuffleNetV2_cat',
+                                          head=args.head)
+    preprocess = 'rtpose'
+elif model_name == 'ShuffleNetV2_Adaptive_cat':  # --- Light weight ShuffleNet
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage, backbone='ShuffleNetV2_Adaptive_cat',
+                                          head=args.head)
+    preprocess = 'rtpose'
+elif model_name == 'ShuffleNetV2_Adaptive_catV2':  # --- Light weight ShuffleNet
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage, backbone='ShuffleNetV2_Adaptive_catV2',
+                                          head=args.head)
+    preprocess = 'rtpose'
+elif model_name == 'ShuffleNetV2_add':  # --- Light weight ShuffleNet
+    model = rtpose_shufflenetV2.LWNetwork(width_mult=width_mult, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+                                          multistage=args.multistage, backbone='ShuffleNetV2_add',
+                                          head=args.head)
+    preprocess = 'rtpose'
+else:
+    print('Please check the model name.')
+    exit(0)
+print('Network backbone:{}'.format(model_name))
+
+# model = rtpose_shufflenetV2.Network(width_multiplier=1.0, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+#                                     multistage=args.multistage)  # Mod by Jie.
+
+# model = rtpose_shufflenetV2.LWNetwork(width_mult=1.0, numkeypoints=CF.NUM_KEYPOINTS, numlims=CF.NUM_LIMBS,
+#                                       multistage=args.multistage)  # Mod by Jie.
 # model = encoding.nn.DataParallelModel(model, device_ids=args.gpu_ids)
+
 model = torch.nn.DataParallel(model).cuda()
 
 # --- resume
