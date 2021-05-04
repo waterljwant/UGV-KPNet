@@ -11,11 +11,9 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from tensorboardX import SummaryWriter
 
-# import encoding
 from network.rtpose_vgg import get_model, use_vgg
 from network import rtpose_shufflenetV2
 
-# ---- Kik dataset
 from training.datasets.ugvkp import get_loader
 from network.utility import resample
 
@@ -81,13 +79,6 @@ os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(str(e) for e in args.gpu_ids)
 
 print('GPU:', args.gpu_ids, ' resample:', args.resample, ' classification', args.classification)
 
-# ----debug
-# args.json_path = '/home/jie/kikprogram/robot/dataset/robot_keypoints125_1-4.json' \
-# # --saved_model='/home/jie/kikprogram/robot/OpenPoseV1/network/weight/shufflenet_robot_2-v0.1-augtttt.pth' \
-# args.multistage = 1
-# args.gpu_ids = [0]
-
-# ---end of debug
 
 STAGE = args.multistage + 1
 
