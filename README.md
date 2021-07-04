@@ -1,5 +1,7 @@
 ## Real-time keypoints detection for autonomous recovery of the unmanned ground vehicle
 
+This repo contains training and testing code for our paper on UGV-KPNet, a task for detecting the keypoints of the small UGV form the images captured by a monocular camera to obtain positioning and attitude information of the UGV. More information about the project can be found in our [paper](https://ietresearch.onlinelibrary.wiley.com/doi/epdf/10.1049/iet-ipr.2020.0864).
+
 
 If you find UGV-KPNet useful in your research, please cite:
 
